@@ -3,97 +3,212 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14291A">
 <title>مساح</title>
-<link rel="stylesheet" href="leaflet.css">
 <style>
-:root{--bg:#F2F4F0;--ink:#1E2A22;--green:#2E5A3B;--stake:#FF6A1A;--line:#D3DACF;--card:#fff;--muted:#5E6B62}
+:root{--g9:#14291A;--g7:#2B5638;--g1:#E3ECE0;--bg:#F2F4EF;--ink:#16231A;--mut:#5B685F;--line:#D9E0D5;--stake:#FF6A1A;--card:#fff;--good:#2E9B4F;--mid:#E0A100;--bad:#D6402B}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{font-family:system-ui,"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;height:100dvh}
-header{background:var(--green);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:baseline;gap:10px}
-header h1{margin:0;font-size:24px;font-weight:800}
-header span{font-size:13px;opacity:.8}
-main{flex:1;min-height:0;position:relative}
-.tab{position:absolute;inset:0;display:none;flex-direction:column}
-.tab.on{display:flex}
-#map{flex:1;min-height:0;direction:ltr}
-#map.leaflet-container{background-color:#E6EBE2;background-image:linear-gradient(#CFD7CB 1px,transparent 1px),linear-gradient(90deg,#CFD7CB 1px,transparent 1px);background-size:40px 40px}
-.panel{background:var(--card);border-top:3px solid var(--stake);padding:12px 14px;max-height:46%;overflow:auto}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:20px;padding:8px 14px;font:inherit;font-size:14px}
-.chip:active{background:var(--line)}
-.hint{color:var(--muted);font-size:14px;line-height:1.7;margin:4px 0}
-.big{font-size:34px;font-weight:800;color:var(--stake);line-height:1.1}
+html,body{margin:0;height:100%;background:var(--bg)}
+body{font-family:system-ui,"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;color:var(--ink);-webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font:inherit;cursor:pointer}
+svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.screen{position:absolute;inset:0;overflow-y:auto;display:none;padding-bottom:env(safe-area-inset-bottom)}
+.screen.on{display:block}
+
+/* الرئيسية */
+.hero{background:var(--g9);color:#fff;padding:calc(26px + env(safe-area-inset-top)) 22px 64px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:repeating-radial-gradient(circle at 12% 135%,transparent 0 22px,rgba(255,255,255,.06) 22px 23px),repeating-radial-gradient(circle at 92% -25%,transparent 0 30px,rgba(255,255,255,.05) 30px 31px)}
+.hero>*{position:relative}
+.hero h1{font-size:42px;margin:14px 0 4px;font-weight:800}
+.hero p{margin:0;opacity:.8;font-size:15px}
+.badge{display:inline-flex;gap:7px;align-items:center;background:rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:12.5px}
+.badge i{width:8px;height:8px;border-radius:50%;background:#6FE08F}
+.cta{display:flex;align-items:center;gap:14px;width:calc(100% - 32px);margin:-36px 16px 0;position:relative;background:var(--stake);color:#fff;border:0;border-radius:18px;padding:18px;text-align:right;box-shadow:0 8px 20px rgba(255,106,26,.35)}
+.cta b{display:block;font-size:19px;margin-bottom:2px}
+.cta span{font-size:13px;line-height:1.5;opacity:.95}
+.cta .ic{flex:none;width:50px;height:50px;border-radius:14px;background:rgba(255,255,255,.22);display:grid;place-items:center}
+.cta .ic svg{width:28px;height:28px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 14px;text-align:right;color:var(--ink);display:flex;flex-direction:column;gap:10px}
+.tile .ic{width:42px;height:42px;border-radius:12px;background:var(--g1);color:var(--g7);display:grid;place-items:center}
+.tile b{font-size:16px}
+.tile span{font-size:12.5px;color:var(--mut);line-height:1.5}
+.cta:active,.tile:active,.item:active{transform:scale(.98)}
+.sec{margin:6px 18px 8px;font-size:15px;color:var(--mut);font-weight:700}
+.item{display:flex;flex-direction:column;gap:2px;width:calc(100% - 32px);margin:0 16px 8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:right;color:var(--ink)}
+.item span{font-size:13px;color:var(--mut)}
+.note{margin:14px 18px 26px;font-size:12.5px;color:var(--mut);line-height:1.7}
+
+/* الشاشات الداخلية */
+.bar{position:sticky;top:0;z-index:5;background:var(--g9);color:#fff;display:flex;align-items:center;gap:4px;padding:calc(8px + env(safe-area-inset-top)) 8px 10px}
+.bar h2{margin:0;font-size:19px;flex:1}
+.back{background:none;border:0;color:#fff;width:42px;height:42px;display:grid;place-items:center}
+.pad{padding:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.hint{color:var(--mut);font-size:14px;line-height:1.8;margin:4px 0}
+.gps{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:12px;font-size:13.5px}
+.gps i{flex:none;width:12px;height:12px;border-radius:50%;background:#aaa}
+.gps.good i{background:var(--good)}.gps.mid i{background:var(--mid)}.gps.bad i{background:var(--bad)}
+.gps.wait i{animation:pulse 1.2s infinite}
+.gps small{display:block;color:var(--mut);direction:ltr;text-align:right;font-size:12px}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.gps.wait i{animation:none}.cta:active,.tile:active,.item:active{transform:none}}
+canvas.plan{width:100%;height:270px;border-radius:16px;border:1px solid var(--line);display:block;background:#F7F9F5;margin-bottom:12px}
+.btn{border:0;border-radius:14px;background:var(--g7);color:#fff;font-size:16px;font-weight:700;padding:14px 18px}
+.btn.big{width:100%;padding:18px;font-size:18px;background:var(--stake)}
+.btn.ghost{background:var(--g1);color:var(--g7)}
+.btn.danger{background:#FBE6E2;color:var(--bad)}
+.btn:disabled{opacity:.6}
+.row2{display:flex;gap:8px;margin:10px 0}
+.row2 .btn{flex:1;padding:12px 6px;font-size:14px}
+.big{font-size:36px;font-weight:800;color:var(--stake);line-height:1.1}
 .big small{font-size:16px;color:var(--ink);font-weight:600;margin-inline-start:6px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .cell{background:var(--bg);border-radius:10px;padding:8px 10px}
 .cell b{display:block;font-size:17px}
-.cell span{font-size:12px;color:var(--muted)}
-details{margin-top:10px;font-size:13px}
-summary{color:var(--green);font-weight:700;padding:4px 0}
-.coords{direction:ltr;text-align:left;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;margin:6px 0}
-.pin{background:var(--stake);border:3px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)}
-nav{display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;border:0;background:none;font:inherit;font-size:15px;padding:14px 0;color:var(--muted);border-top:3px solid transparent}
-nav button.on{color:var(--green);font-weight:800;border-top-color:var(--green)}
-.conv{padding:16px;overflow:auto}
-.conv label{font-size:14px;color:var(--muted)}
-.row{display:flex;gap:8px;margin:6px 0 16px}
-.row input,.row select{font:inherit;font-size:18px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);min-width:0}
-.row input{flex:1}
+.cell span{font-size:12px;color:var(--mut)}
+.warn{background:#FFF2E0;color:#8A4B00;border-radius:10px;padding:8px 10px;font-size:13px;margin-top:10px;line-height:1.6}
+details{margin-top:12px;font-size:13px}
+summary{color:var(--g7);font-weight:700;padding:4px 0}
+.coords{direction:ltr;text-align:left;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.9;white-space:pre-wrap;margin:6px 0}
+.coord{direction:ltr;text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--mut);margin:6px 0}
+label{display:block;font-size:14px;color:var(--mut);margin:12px 0 6px}
+.inp,select.inp{width:100%;font:inherit;font-size:18px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
 .res{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);font-size:16px}
+.res:last-child{border-bottom:0}
 .res b{direction:ltr}
 .res.src{color:var(--stake)}
-#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:2000}
+.land .lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.land .lh span{color:var(--stake);font-weight:800}
+.land small{color:var(--mut)}
+
+/* نافذة سفلية */
+#modal{position:fixed;inset:0;background:rgba(10,20,14,.5);display:none;align-items:flex-end;z-index:50}
+#modal.on{display:flex}
+.sheet{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom))}
+.sheet h3{margin:0 0 12px;font-size:18px}
+.sheet .inp{margin-bottom:10px}
+.sheet .ltr{direction:ltr;text-align:left}
+.acts{display:flex;gap:8px;margin-top:6px}
+.acts .btn{flex:1}
+#toast{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);max-width:90%;background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99;text-align:center}
 #toast.on{opacity:1}
 </style>
 </head>
 <body>
-<header><h1>مساح</h1><span>قياس الأراضي والمسافات</span></header>
 
-<main>
-  <section class="tab on" id="tab-map">
-    <div id="map"></div>
-    <div class="panel">
-      <div class="chips">
-        <button class="chip" id="b-undo">تراجع</button>
-        <button class="chip" id="b-clear">مسح الكل</button>
-        <button class="chip" id="b-gps">نقطة من GPS</button>
-        <button class="chip" id="b-loc">موقعي</button>
-        <button class="chip" id="b-save">حفظ المنطقة بدون نت</button>
-        <button class="chip" id="b-layer">خريطة عادية</button>
-      </div>
-      <div id="out"></div>
+<!-- الرئيسية -->
+<section class="screen on" id="s-home">
+  <div class="hero">
+    <span class="badge"><i></i>يعمل بدون إنترنت</span>
+    <h1>مساح</h1>
+    <p>قياس الأراضي والمسافات بالـGPS</p>
+  </div>
+  <button class="cta" data-go="measure">
+    <div class="ic" data-ic="area"></div>
+    <div><b>قياس أرض جديدة</b><span>سجّل زوايا الأرض بالـGPS واحصل على المساحة بالدونم</span></div>
+  </button>
+  <div class="tiles">
+    <button class="tile" data-go="distance"><div class="ic" data-ic="ruler"></div><b>قياس مسافة</b><span>بين نقطتين أو أثناء المشي</span></button>
+    <button class="tile" data-go="saved"><div class="ic" data-ic="folder"></div><b>أراضيّ</b><span id="t-saved">لا توجد أراضٍ محفوظة</span></button>
+    <button class="tile" data-go="convert"><div class="ic" data-ic="convert"></div><b>محوّل الوحدات</b><span>دونم، هكتار، متر مربع وغيرها</span></button>
+    <button class="tile" data-go="shapes"><div class="ic" data-ic="calc"></div><b>حاسبة الأشكال</b><span>مستطيل، مثلث، شبه منحرف، دائرة</span></button>
+  </div>
+  <div id="recent"></div>
+  <p class="note">دقة GPS في الهواتف تتراوح عادةً بين 3 و10 أمتار. للأعمال الرسمية والمعاملات القانونية استعن بمساح مرخّص.</p>
+</section>
+
+<!-- قياس أرض -->
+<section class="screen" id="s-measure">
+  <header class="bar"><button class="back" aria-label="رجوع" data-ic="back"></button><h2>قياس أرض</h2></header>
+  <div class="pad">
+    <div class="gps wait"><i></i><div></div></div>
+    <canvas class="plan" id="plan"></canvas>
+    <button class="btn big" id="m-rec">سجّل نقطة هنا</button>
+    <div class="row2">
+      <button class="btn ghost" id="m-undo">تراجع</button>
+      <button class="btn ghost" id="m-man">إدخال يدوي</button>
+      <button class="btn danger" id="m-clear">مسح</button>
     </div>
-  </section>
-
-  <section class="tab" id="tab-conv">
-    <div class="conv">
-      <label for="val">القيمة</label>
-      <div class="row">
-        <input id="val" type="text" inputmode="decimal" value="1" autocomplete="off">
-        <select id="unit"></select>
-      </div>
-      <div id="conv-out"></div>
-      <p class="hint">الدونم العراقي = 2500 م².</p>
+    <div id="m-out"></div>
+    <div class="row2" id="m-act" style="display:none">
+      <button class="btn" id="m-save">حفظ الأرض</button>
+      <button class="btn ghost" id="m-copy">نسخ النتيجة</button>
     </div>
-  </section>
-</main>
+  </div>
+</section>
 
-<nav>
-  <button class="on" data-tab="map">القياس بالخريطة</button>
-  <button data-tab="conv">محوّل الوحدات</button>
-</nav>
+<!-- قياس مسافة -->
+<section class="screen" id="s-distance">
+  <header class="bar"><button class="back" aria-label="رجوع" data-ic="back"></button><h2>قياس مسافة</h2></header>
+  <div class="pad">
+    <div class="gps wait"><i></i><div></div></div>
+    <div class="card"><b>النقطة A</b><div class="coord" id="d-a"></div>
+      <div class="row2"><button class="btn" id="d-rec-a">سجّل A من موقعي</button><button class="btn ghost" id="d-man-a">إدخال يدوي</button></div></div>
+    <div class="card"><b>النقطة B</b><div class="coord" id="d-b"></div>
+      <div class="row2"><button class="btn" id="d-rec-b">سجّل B من موقعي</button><button class="btn ghost" id="d-man-b">إدخال يدوي</button></div></div>
+    <div class="card" id="d-res"></div>
+    <button class="btn danger" id="d-clear" style="width:100%">مسح النقطتين</button>
+  </div>
+</section>
+
+<!-- المحوّل -->
+<section class="screen" id="s-convert">
+  <header class="bar"><button class="back" aria-label="رجوع" data-ic="back"></button><h2>محوّل الوحدات</h2></header>
+  <div class="pad">
+    <label for="val">القيمة</label>
+    <input class="inp" id="val" type="text" inputmode="decimal" value="1" autocomplete="off">
+    <label for="unit">الوحدة</label>
+    <select class="inp" id="unit"></select>
+    <div class="card" id="conv-out" style="margin-top:16px"></div>
+    <p class="hint">الدونم العراقي = 2500 م².</p>
+  </div>
+</section>
+
+<!-- الأشكال -->
+<section class="screen" id="s-shapes">
+  <header class="bar"><button class="back" aria-label="رجوع" data-ic="back"></button><h2>حاسبة الأشكال</h2></header>
+  <div class="pad">
+    <label for="sh-sel">الشكل</label>
+    <select class="inp" id="sh-sel"></select>
+    <div id="sh-f"></div>
+    <div class="card" id="sh-out" style="margin-top:16px"></div>
+  </div>
+</section>
+
+<!-- الأراضي المحفوظة -->
+<section class="screen" id="s-saved">
+  <header class="bar"><button class="back" aria-label="رجوع" data-ic="back"></button><h2>أراضيّ</h2></header>
+  <div class="pad" id="saved-list"></div>
+</section>
+
+<div id="modal"></div>
 <div id="toast"></div>
 
-<script src="leaflet.js"></script>
 <script>
 const R = 6371008.8;
 const $ = s => document.querySelector(s);
 const rad = d => d * Math.PI / 180;
 const fmt = (n, d = 2) => n.toLocaleString('en-US', {maximumFractionDigits: d});
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function normDigits(s){ return String(s).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g, '.'); }
+const num = s => parseFloat(normDigits(s));
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+function toast(t){ const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2600); }
 
-function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2200); }
+/* ---------- أيقونات ---------- */
+const IC = {
+  area:'<path d="M4 8l7-4 9 5-2 10-11 1z"/>',
+  ruler:'<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
+  calc:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/>',
+  convert:'<path d="M7 7h12l-3-3M17 17H5l3 3"/>',
+  folder:'<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
+  back:'<path d="M9 5l7 7-7 7"/>'
+};
+document.querySelectorAll('[data-ic]').forEach(e => e.innerHTML = '<svg viewBox="0 0 24 24">' + IC[e.dataset.ic] + '</svg>');
 
 /* ---------- الحسابات ---------- */
 function dist(a, b){
@@ -107,163 +222,305 @@ function pathLength(p, closed){
   if (closed && p.length > 2) s += dist(p[p.length-1], p[0]);
   return s;
 }
-function polyArea(p){ // إسقاط محلي ثم قانون الحذاء
-  const lat0 = p.reduce((s,q)=>s+q[0],0)/p.length;
-  const xy = p.map(q => [R*rad(q[1])*Math.cos(rad(lat0)), R*rad(q[0])]);
-  let a = 0;
+function toXY(p){
+  const lat0 = p.reduce((s,q) => s + q[0], 0) / p.length;
+  return p.map(q => [R*rad(q[1])*Math.cos(rad(lat0)), R*rad(q[0])]);
+}
+function polyArea(p){
+  const xy = toXY(p); let a = 0;
   for (let i = 0; i < xy.length; i++){
     const j = (i+1) % xy.length;
     a += xy[i][0]*xy[j][1] - xy[j][0]*xy[i][1];
   }
-  return Math.abs(a)/2;
+  return Math.abs(a) / 2;
 }
-
-/* ---------- الخريطة ---------- */
-/* تخزين البلاطات في الهاتف (IndexedDB) لتعمل الخريطة بدون إنترنت */
-const DB = (() => {
-  const open = new Promise(res => {
-    try {
-      const r = indexedDB.open('masah-tiles', 1);
-      r.onupgradeneeded = () => r.result.createObjectStore('t');
-      r.onsuccess = () => res(r.result);
-      r.onerror = () => res(null);
-    } catch (e) { res(null); }
-  });
-  return {
-    async get(k){ const d = await open; if (!d) return null;
-      return new Promise(res => { const q = d.transaction('t').objectStore('t').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); },
-    async has(k){ return !!(await this.get(k)); },
-    async put(k, v){ const d = await open; if (!d) return;
-      return new Promise(res => { const tx = d.transaction('t', 'readwrite'); tx.objectStore('t').put(v, k); tx.oncomplete = () => res(); tx.onerror = () => res(); }); }
-  };
-})();
-
-const CachedLayer = L.TileLayer.extend({
-  createTile(coords, done){
-    const img = document.createElement('img');
-    img.alt = '';
-    const url = this.getTileUrl(coords);
-    const key = this.options.id + '/' + coords.z + '/' + coords.x + '/' + coords.y;
-    const show = blob => { const u = URL.createObjectURL(blob); img.onload = () => { URL.revokeObjectURL(u); done(null, img); }; img.onerror = () => done(null, img); img.src = u; };
-    DB.get(key).then(async blob => {
-      if (blob) return show(blob);
-      try {
-        const r = await fetch(url);
-        if (!r.ok) throw 0;
-        const b = await r.blob();
-        DB.put(key, b);
-        show(b);
-      } catch (e) {
-        img.onload = () => done(null, img); img.onerror = () => done(null, img);
-        if (navigator.onLine) img.src = url; else done(null, img);
-      }
-    });
-    return img;
+function crosses(p){
+  const xy = toXY(p), n = xy.length; if (n < 4) return false;
+  const ccw = (a,b,c) => (c[1]-a[1])*(b[0]-a[0]) > (b[1]-a[1])*(c[0]-a[0]);
+  const inter = (a,b,c,d) => ccw(a,c,d) !== ccw(b,c,d) && ccw(a,b,c) !== ccw(a,b,d);
+  for (let i = 0; i < n; i++) for (let j = i+1; j < n; j++){
+    const i2 = (i+1) % n, j2 = (j+1) % n;
+    if (i2 === j || j2 === i) continue;
+    if (inter(xy[i], xy[i2], xy[j], xy[j2])) return true;
   }
-});
-const osm = new CachedLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {id:'osm', maxZoom:19, attribution:'© OpenStreetMap'});
-const sat = new CachedLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {id:'sat', maxZoom:19, attribution:'Esri'});
-const map = L.map('map', {zoomControl:false}).setView([33.3, 44.4], 6);
-let satOn = true; sat.addTo(map);
-
-let pts = [], markers = [], shape = null;
-const pinIcon = L.divIcon({className:'pin', iconSize:[20,20]});
-
-function addPoint(ll){
-  pts.push([ll.lat, ll.lng]);
-  const m = L.marker(ll, {draggable:true, icon:pinIcon}).addTo(map);
-  m.on('drag', () => { const i = markers.indexOf(m); const p = m.getLatLng(); pts[i] = [p.lat, p.lng]; draw(); });
-  markers.push(m);
-  draw();
+  return false;
 }
-function draw(){
-  if (shape) map.removeLayer(shape);
-  const st = {color:'#FF6A1A', weight:3, fillOpacity:.2};
-  if (pts.length >= 3) shape = L.polygon(pts, st).addTo(map);
-  else if (pts.length === 2) shape = L.polyline(pts, st).addTo(map);
-  else shape = null;
-  render();
+
+/* ---------- نافذة سفلية ---------- */
+function sheet({title, body, ok = 'موافق', cancel = 'إلغاء', onOk}){
+  const m = $('#modal');
+  m.innerHTML = `<div class="sheet"><h3>${title}</h3>${body}<div class="acts"><button class="btn ghost" id="m-cancel">${cancel}</button><button class="btn" id="m-ok">${ok}</button></div></div>`;
+  m.classList.add('on');
+  const close = () => { m.classList.remove('on'); m.innerHTML = ''; };
+  $('#m-cancel').onclick = close;
+  m.onclick = e => { if (e.target === m) close(); };
+  $('#m-ok').onclick = () => { if (onOk() !== false) close(); };
+  const f = m.querySelector('input'); if (f) setTimeout(() => f.focus(), 60);
 }
-function render(){
-  const n = pts.length, out = $('#out');
-  if (n === 0){ out.innerHTML = '<p class="hint">المس الخريطة لوضع نقاط حدود الأرض، أو قف عند كل زاوية واضغط «نقطة من GPS» (يعمل بدون إنترنت). يمكنك سحب أي نقطة لتعديلها.</p>'; return; }
-  let html = '';
-  if (n === 1) html = '<p class="hint">ضع نقطة ثانية لقياس المسافة، وثالثة لحساب المساحة.</p>';
-  else if (n === 2) html = `<div class="big">${fmt(pathLength(pts),1)}<small>متر</small></div><p class="hint">المسافة بين النقطتين = ${fmt(pathLength(pts)/1000,3)} كم</p>`;
+function manualSheet(cb){
+  sheet({title:'إدخال إحداثي يدوي',
+    body:'<input class="inp ltr" id="f-lat" inputmode="decimal" placeholder="خط العرض مثال: 33.312345"><input class="inp ltr" id="f-lng" inputmode="decimal" placeholder="خط الطول مثال: 44.361234">',
+    ok:'إضافة',
+    onOk: () => {
+      let a = $('#f-lat').value, b = $('#f-lng').value;
+      if (!b.trim() && /[,،]/.test(a)) [a, b] = a.split(/[,،]/);
+      const la = num(a), ln = num(b);
+      if (!(la >= -90 && la <= 90 && ln >= -180 && ln <= 180)){ toast('إحداثيات غير صحيحة'); return false; }
+      cb(la, ln);
+    }});
+}
+async function copyText(t){
+  try { await navigator.clipboard.writeText(t); toast('تم النسخ'); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('تم النسخ'); } catch (_) { toast('تعذّر النسخ'); }
+    ta.remove();
+  }
+}
+
+/* ---------- GPS ---------- */
+let watchId = null, pos = null, gpsErr = '';
+const samples = [];
+function startGPS(){
+  if (watchId !== null) return;
+  if (!navigator.geolocation){ gpsErr = 'الجهاز لا يدعم GPS'; gpsUI(); return; }
+  gpsErr = '';
+  watchId = navigator.geolocation.watchPosition(p => {
+    pos = {lat:p.coords.latitude, lng:p.coords.longitude, acc:p.coords.accuracy, t:Date.now()};
+    samples.push(pos); if (samples.length > 60) samples.shift();
+    gpsErr = ''; gpsUI(); livePlan();
+  }, e => {
+    gpsErr = e.code === 1 ? 'إذن الموقع مرفوض. فعّله للتطبيق من إعدادات الهاتف.'
+           : e.code === 2 ? 'تعذّر تحديد الموقع. تأكد من تشغيل GPS.'
+           : 'انتهت مهلة الإشارة. اخرج إلى مكان مكشوف.';
+    gpsUI();
+  }, {enableHighAccuracy:true, maximumAge:0, timeout:30000});
+}
+function stopGPS(){
+  if (watchId !== null){ navigator.geolocation.clearWatch(watchId); watchId = null; }
+  pos = null; samples.length = 0;
+}
+function gpsUI(){
+  let cls, msg, sub = '';
+  if (gpsErr){ cls = 'bad'; msg = gpsErr; }
+  else if (!pos){ cls = 'wait'; msg = 'جارٍ البحث عن إشارة GPS…'; }
+  else {
+    const a = pos.acc;
+    cls = a <= 5 ? 'good' : a <= 15 ? 'mid' : 'bad';
+    msg = 'GPS: ±' + Math.round(a) + ' م — ' + (a <= 5 ? 'دقة ممتازة' : a <= 15 ? 'دقة جيدة' : 'دقة ضعيفة، اخرج إلى مكان مكشوف');
+    sub = pos.lat.toFixed(6) + ', ' + pos.lng.toFixed(6);
+  }
+  document.querySelectorAll('.gps').forEach(g => {
+    g.className = 'gps ' + cls;
+    g.querySelector('div').innerHTML = esc(msg) + (sub ? '<small>' + sub + '</small>' : '');
+  });
+  if (location.hash === '#distance') renderDist();
+}
+// متوسط قراءات 4 ثوانٍ لتحسين الدقة
+function capture(btn, label){
+  return new Promise((res, rej) => {
+    if (!pos){ rej('لا توجد إشارة GPS بعد. انتظر قليلاً.'); return; }
+    const t0 = Date.now(); let left = 4;
+    btn.disabled = true; btn.textContent = 'جارٍ التسجيل… ' + left;
+    const tick = setInterval(() => { left--; if (left > 0) btn.textContent = 'جارٍ التسجيل… ' + left; }, 1000);
+    setTimeout(() => {
+      clearInterval(tick); btn.disabled = false; btn.textContent = label;
+      let s = samples.filter(x => x.t >= t0); if (!s.length) s = [pos];
+      let w = 0, la = 0, ln = 0, best = 1e9;
+      s.forEach(x => { const k = 1 / Math.max(x.acc, 1) ** 2; w += k; la += x.lat*k; ln += x.lng*k; best = Math.min(best, x.acc); });
+      res({lat: la/w, lng: ln/w, acc: best});
+    }, 4000);
+  });
+}
+
+/* ---------- المخطط (بدون خريطة) ---------- */
+function drawPlan(cv, P, here){
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (!W) return;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  const g = cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  g.fillStyle = '#F7F9F5'; g.fillRect(0,0,W,H);
+  g.strokeStyle = '#E1E7DC'; g.lineWidth = 1;
+  for (let x = 0; x < W; x += 30){ g.beginPath(); g.moveTo(x+.5,0); g.lineTo(x+.5,H); g.stroke(); }
+  for (let y = 0; y < H; y += 30){ g.beginPath(); g.moveTo(0,y+.5); g.lineTo(W,y+.5); g.stroke(); }
+  g.direction = 'ltr'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (!P.length){ g.fillStyle = '#5B685F'; g.font = '14px system-ui,Tahoma,sans-serif'; g.fillText('سيظهر مخطط الأرض هنا', W/2, H/2); return; }
+  const lat0 = P.reduce((s,p) => s + p[0], 0) / P.length;
+  const pr = p => [R*rad(p[1])*Math.cos(rad(lat0)), R*rad(p[0])];
+  const xy = P.map(pr), xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
+  const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+  const sx = Math.max(maxx-minx, 8), sy = Math.max(maxy-miny, 8), pad = 38;
+  const sc = Math.min((W-2*pad)/sx, (H-2*pad)/sy);
+  const ox = (W-(maxx-minx)*sc)/2, oy = (H-(maxy-miny)*sc)/2;
+  const X = x => ox + (x-minx)*sc, Y = y => H - (oy + (y-miny)*sc);
+  const S = xy.map(p => [X(p[0]), Y(p[1])]);
+  g.lineJoin = 'round';
+  if (S.length >= 2){
+    g.beginPath(); S.forEach((p,i) => i ? g.lineTo(p[0],p[1]) : g.moveTo(p[0],p[1]));
+    if (S.length >= 3){ g.closePath(); g.fillStyle = 'rgba(255,106,26,.18)'; g.fill(); }
+    g.strokeStyle = '#FF6A1A'; g.lineWidth = 3; g.stroke();
+  }
+  const edges = []; for (let i = 0; i < S.length-1; i++) edges.push([i,i+1]); if (S.length >= 3) edges.push([S.length-1,0]);
+  g.font = '600 11px system-ui,sans-serif';
+  if (S.length <= 12) edges.forEach(([a,b]) => {
+    const t = fmt(dist(P[a],P[b]),1), x = (S[a][0]+S[b][0])/2, y = (S[a][1]+S[b][1])/2;
+    g.lineWidth = 4; g.strokeStyle = '#F7F9F5'; g.strokeText(t,x,y); g.fillStyle = '#14291A'; g.fillText(t,x,y);
+  });
+  S.forEach((p,i) => {
+    g.beginPath(); g.arc(p[0],p[1],11,0,7); g.fillStyle = '#14291A'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#fff'; g.stroke();
+    g.fillStyle = '#fff'; g.font = '700 11px system-ui,sans-serif'; g.fillText(String(i+1), p[0], p[1]+.5);
+  });
+  if (here){
+    const c = pr([here.lat, here.lng]), cx = X(c[0]), cy = Y(c[1]);
+    if (cx > 6 && cx < W-6 && cy > 6 && cy < H-6){ g.beginPath(); g.arc(cx,cy,7,0,7); g.fillStyle = '#2F7BFF'; g.fill(); g.lineWidth = 3; g.strokeStyle = '#fff'; g.stroke(); }
+  }
+  const nice = [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000]; let L = nice[0];
+  for (const v of nice) if (v*sc <= W*.3) L = v;
+  const bx = 14, by = H-14, bw = L*sc;
+  g.strokeStyle = '#14291A'; g.lineWidth = 2; g.beginPath(); g.moveTo(bx,by-5); g.lineTo(bx,by); g.lineTo(bx+bw,by); g.lineTo(bx+bw,by-5); g.stroke();
+  g.textAlign = 'left'; g.font = '600 11px system-ui,sans-serif'; g.fillStyle = '#14291A';
+  g.fillText(L >= 1000 ? (L/1000) + ' كم' : L + ' م', bx, by-13);
+  g.textAlign = 'center'; g.beginPath(); g.moveTo(W-22,10); g.lineTo(W-28,26); g.lineTo(W-16,26); g.closePath(); g.fill();
+  g.fillText('ش', W-22, 36);
+}
+let raf = 0;
+function livePlan(){
+  if (location.hash !== '#measure' || raf) return;
+  raf = requestAnimationFrame(() => { raf = 0; drawPlan($('#plan'), pts, pos); });
+}
+
+/* ---------- قياس الأرض ---------- */
+let pts = [], cur = {id:null, name:''}, lands = store.get('masah:lands', []);
+const dr = store.get('masah:draft', null);
+if (dr){ pts = dr.pts || []; cur = dr.cur || cur; }
+const saveDraft = () => store.set('masah:draft', {pts, cur});
+const landArea = l => l.pts.length >= 3 ? polyArea(l.pts) : 0;
+
+function addPt(la, ln){ pts.push([la, ln]); saveDraft(); renderMeasure(); }
+function summaryText(name, P){
+  const n = P.length; let t = 'مساح — ' + (name || 'نتيجة القياس') + '\n';
+  if (n >= 3){ const a = polyArea(P); t += `المساحة: ${fmt(a/2500,3)} دونم (${fmt(a,1)} م²) = ${fmt(a/10000,3)} هكتار\nالمحيط: ${fmt(pathLength(P,true),1)} م\n`; }
+  else if (n === 2) t += `المسافة: ${fmt(pathLength(P),1)} م\n`;
+  t += 'الإحداثيات:\n' + P.map((p,i) => `${i+1}: ${p[0].toFixed(6)}, ${p[1].toFixed(6)}`).join('\n');
+  return t;
+}
+function renderMeasure(){
+  requestAnimationFrame(() => drawPlan($('#plan'), pts, pos));
+  const n = pts.length, out = $('#m-out');
+  $('#m-act').style.display = n >= 2 ? 'flex' : 'none';
+  if (n === 0){ out.innerHTML = '<div class="card"><p class="hint">قف عند أول زاوية للأرض واضغط «سجّل نقطة هنا»، ثم امشِ إلى الزاوية التالية وكرّر. تحتاج 3 نقاط على الأقل. كل نقطة هي متوسط قراءات 4 ثوانٍ لزيادة الدقة.</p></div>'; return; }
+  if (n === 1){ out.innerHTML = '<div class="card"><p class="hint">تم تسجيل النقطة 1. امشِ إلى الزاوية التالية وسجّلها.</p></div>'; return; }
+  const sides = []; for (let i = 1; i < n; i++) sides.push(dist(pts[i-1], pts[i])); if (n >= 3) sides.push(dist(pts[n-1], pts[0]));
+  let h = '';
+  if (n === 2) h = `<div class="big">${fmt(sides[0],1)}<small>متر</small></div><p class="hint">المسافة بين النقطتين = ${fmt(sides[0]/1000,3)} كم. سجّل نقطة ثالثة لحساب المساحة.</p>`;
   else {
     const a = polyArea(pts), per = pathLength(pts, true);
-    html = `<div class="big">${fmt(a/2500,3)}<small>دونم</small></div>
+    h = `<div class="big">${fmt(a/2500,3)}<small>دونم</small></div>
     <div class="grid">
       <div class="cell"><b>${fmt(a,1)}</b><span>متر مربع</span></div>
       <div class="cell"><b>${fmt(a/10000,3)}</b><span>هكتار</span></div>
       <div class="cell"><b>${fmt(per,1)}</b><span>المحيط (متر)</span></div>
       <div class="cell"><b>${n}</b><span>عدد النقاط</span></div>
     </div>`;
+    if (crosses(pts)) h += '<div class="warn">أضلاع الشكل متقاطعة، لذلك قد تكون المساحة غير صحيحة. سجّل النقاط بالترتيب حول حدود الأرض.</div>';
   }
-  const list = pts.map((p,i)=>`${i+1}: ${p[0].toFixed(6)}, ${p[1].toFixed(6)}`).join('\n');
-  html += `<details><summary>الإحداثيات</summary><div class="coords">${list}</div><button class="chip" id="b-copy">نسخ الإحداثيات</button></details>`;
-  out.innerHTML = html;
-  const c = $('#b-copy');
-  if (c) c.onclick = async () => {
-    try { await navigator.clipboard.writeText(pts.map(p=>p[0].toFixed(6)+', '+p[1].toFixed(6)).join('\n')); toast('تم النسخ'); }
-    catch(e){ toast('تعذّر النسخ'); }
-  };
+  h += `<details><summary>الأضلاع والإحداثيات</summary><div class="coords">${sides.map((s,i) => `${i+1}→${(i+1)%n+1}: ${fmt(s,1)} م`).join('\n')}\n\n${pts.map((p,i) => `${i+1}: ${p[0].toFixed(6)}, ${p[1].toFixed(6)}`).join('\n')}</div></details>`;
+  out.innerHTML = '<div class="card">' + h + '</div>';
 }
-
-map.on('click', e => addPoint(e.latlng));
-$('#b-undo').onclick = () => { if (!pts.length) return; pts.pop(); map.removeLayer(markers.pop()); draw(); };
-$('#b-clear').onclick = () => { markers.forEach(m=>map.removeLayer(m)); markers=[]; pts=[]; draw(); };
-$('#b-layer').onclick = () => {
-  if (satOn){ map.removeLayer(sat); osm.addTo(map); $('#b-layer').textContent='قمر صناعي'; }
-  else { map.removeLayer(osm); sat.addTo(map); $('#b-layer').textContent='خريطة عادية'; }
-  satOn = !satOn;
+$('#m-rec').onclick = async () => {
+  try { const p = await capture($('#m-rec'), 'سجّل نقطة هنا'); addPt(p.lat, p.lng); toast('تم تسجيل النقطة ' + pts.length + ' (±' + Math.round(p.acc) + ' م)'); }
+  catch (m){ toast(m); }
 };
-$('#b-loc').onclick = () => { toast('جارٍ تحديد موقعك…'); map.locate({setView:true, maxZoom:18}); };
-$('#b-gps').onclick = () => {
-  if (!navigator.geolocation) return toast('الجهاز لا يدعم GPS');
-  toast('جارٍ قراءة GPS…');
-  navigator.geolocation.getCurrentPosition(p => {
-    const ll = L.latLng(p.coords.latitude, p.coords.longitude);
-    addPoint(ll);
-    map.setView(ll, Math.max(map.getZoom(), 17));
-    toast('تمت الإضافة. دقة GPS ≈ ' + Math.round(p.coords.accuracy) + ' م');
-  }, () => toast('تعذّر قراءة GPS. فعّل الموقع وأذن للتطبيق.'),
-  {enableHighAccuracy:true, timeout:30000, maximumAge:0});
+$('#m-man').onclick = () => manualSheet((la, ln) => addPt(la, ln));
+$('#m-undo').onclick = () => { if (!pts.length) return; pts.pop(); saveDraft(); renderMeasure(); };
+$('#m-clear').onclick = () => {
+  if (!pts.length) return;
+  sheet({title:'مسح القياس الحالي؟', body:'<p class="hint">سيتم حذف جميع النقاط غير المحفوظة.</p>', ok:'مسح',
+    onOk: () => { pts = []; cur = {id:null, name:''}; saveDraft(); renderMeasure(); }});
+};
+$('#m-copy').onclick = () => copyText(summaryText(cur.name, pts));
+$('#m-save').onclick = () => {
+  if (pts.length < 3) return toast('سجّل 3 نقاط على الأقل لحفظ الأرض');
+  sheet({title:'حفظ الأرض', body:`<input class="inp" id="f-name" placeholder="اسم الأرض" maxlength="40" value="${esc(cur.name || '')}">`, ok:'حفظ',
+    onOk: () => {
+      const name = $('#f-name').value.trim() || 'أرض بدون اسم';
+      const rec = {id: cur.id || Date.now(), name, date: new Date().toISOString(), pts: pts.map(p => p.slice())};
+      const i = lands.findIndex(l => l.id === rec.id);
+      if (i >= 0) lands[i] = rec; else lands.unshift(rec);
+      cur = {id: rec.id, name}; store.set('masah:lands', lands); saveDraft();
+      toast('تم حفظ «' + name + '»');
+    }});
 };
 
-const tx = (lng, z) => Math.floor((lng + 180) / 360 * 2 ** z);
-const ty = (lat, z) => Math.floor((1 - Math.log(Math.tan(rad(lat)) + 1 / Math.cos(rad(lat))) / Math.PI) / 2 * 2 ** z);
-$('#b-save').onclick = async () => {
-  const b = map.getBounds(), z0 = map.getZoom(), layer = satOn ? sat : osm;
-  const list = [];
-  for (let z = z0; z <= Math.min(z0 + 2, 18); z++) {
-    for (let x = tx(b.getWest(), z); x <= tx(b.getEast(), z); x++)
-      for (let y = ty(b.getNorth(), z); y <= ty(b.getSouth(), z); y++) list.push([z, x, y]);
+/* ---------- قياس المسافة ---------- */
+let dA = null, dB = null;
+function renderDist(){
+  $('#d-a').textContent = dA ? dA.lat.toFixed(6) + ', ' + dA.lng.toFixed(6) : 'لم تُحدَّد';
+  $('#d-b').textContent = dB ? dB.lat.toFixed(6) + ', ' + dB.lng.toFixed(6) : 'لم تُحدَّد';
+  let h = '';
+  if (dA && dB){ const d = dist([dA.lat,dA.lng],[dB.lat,dB.lng]); h = `<div class="big">${fmt(d,1)}<small>متر</small></div><p class="hint">= ${fmt(d/1000,3)} كم</p>`; }
+  else if (dA && pos){ const d = dist([dA.lat,dA.lng],[pos.lat,pos.lng]); h = `<div class="big">${fmt(d,1)}<small>متر</small></div><p class="hint">المسافة من A إلى موقعك الآن، وتتحدّث أثناء المشي.</p>`; }
+  else h = '<p class="hint">سجّل النقطة A، ثم امشِ إلى النقطة B وسجّلها. وبعد تسجيل A ترى المسافة تتغير مباشرة أثناء المشي.</p>';
+  $('#d-res').innerHTML = h;
+}
+async function recDist(which, btn, label){
+  try { const p = await capture(btn, label); if (which === 'a') dA = p; else dB = p; renderDist(); }
+  catch (m){ toast(m); }
+}
+$('#d-rec-a').onclick = () => recDist('a', $('#d-rec-a'), 'سجّل A من موقعي');
+$('#d-rec-b').onclick = () => recDist('b', $('#d-rec-b'), 'سجّل B من موقعي');
+$('#d-man-a').onclick = () => manualSheet((la, ln) => { dA = {lat:la, lng:ln}; renderDist(); });
+$('#d-man-b').onclick = () => manualSheet((la, ln) => { dB = {lat:la, lng:ln}; renderDist(); });
+$('#d-clear').onclick = () => { dA = dB = null; renderDist(); };
+
+/* ---------- الأراضي المحفوظة ---------- */
+function renderSaved(){
+  const box = $('#saved-list');
+  if (!lands.length){ box.innerHTML = '<div class="card"><p class="hint">لا توجد أراضٍ محفوظة بعد. قس أرضاً واضغط «حفظ الأرض».</p></div>'; return; }
+  box.innerHTML = lands.map(l => `<div class="card land">
+    <div class="lh"><b>${esc(l.name)}</b><span>${fmt(landArea(l)/2500,3)} دونم</span></div>
+    <small>${fmt(landArea(l),0)} م² • ${new Date(l.date).toLocaleDateString('en-GB')} • ${l.pts.length} نقاط</small>
+    <div class="row2"><button class="btn" data-open="${l.id}">فتح</button><button class="btn ghost" data-copy="${l.id}">نسخ</button><button class="btn danger" data-del="${l.id}">حذف</button></div>
+  </div>`).join('');
+}
+function openLand(id){
+  const l = lands.find(x => x.id === id); if (!l) return;
+  const go = () => { pts = l.pts.map(p => p.slice()); cur = {id:l.id, name:l.name}; saveDraft(); location.hash = '#measure'; };
+  if (pts.length && cur.id !== l.id) sheet({title:'فتح «' + esc(l.name) + '»؟', body:'<p class="hint">سيحلّ محل القياس الحالي غير المحفوظ.</p>', ok:'فتح', onOk: go});
+  else go();
+}
+$('#saved-list').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.open) openLand(+b.dataset.open);
+  if (b.dataset.copy){ const l = lands.find(x => x.id === +b.dataset.copy); if (l) copyText(summaryText(l.name, l.pts)); }
+  if (b.dataset.del){
+    const l = lands.find(x => x.id === +b.dataset.del); if (!l) return;
+    sheet({title:'حذف «' + esc(l.name) + '»؟', body:'<p class="hint">لا يمكن التراجع عن الحذف.</p>', ok:'حذف',
+      onOk: () => { lands = lands.filter(x => x.id !== l.id); store.set('masah:lands', lands); if (cur.id === l.id){ cur.id = null; saveDraft(); } renderSaved(); }});
   }
-  if (list.length > 400) return toast('المنطقة كبيرة. قرّب الخريطة على الأرض ثم أعد المحاولة.');
-  if (!navigator.onLine) return toast('يلزم إنترنت لحفظ المنطقة.');
-  let done = 0, fail = 0;
-  const url = (z, x, y) => layer.getTileUrl({z, x, y});
-  const worker = async () => {
-    while (list.length) {
-      const [z, x, y] = list.pop(), key = layer.options.id + '/' + z + '/' + x + '/' + y;
-      try {
-        if (!(await DB.has(key))) { const r = await fetch(url(z, x, y)); if (!r.ok) throw 0; await DB.put(key, await r.blob()); }
-      } catch (e) { fail++; }
-      done++;
-    }
-  };
-  const total = list.length;
-  const tick = setInterval(() => toast('جارٍ الحفظ ' + done + ' / ' + total), 700);
-  await Promise.all([worker(), worker(), worker(), worker()]);
-  clearInterval(tick);
-  toast(fail ? 'تم الحفظ مع ' + fail + ' بلاطة فاشلة' : 'تم حفظ المنطقة للعمل بدون إنترنت');
-};
+});
 
-map.on('locationerror', () => toast('تعذّر تحديد الموقع. تأكد من تفعيل GPS وإذن الموقع.'));
-render();
+/* ---------- الرئيسية ---------- */
+function renderHome(){
+  $('#t-saved').textContent = lands.length ? lands.length + ' أرض محفوظة' : 'لا توجد أراضٍ محفوظة';
+  let h = '';
+  if (pts.length){
+    h += '<div class="sec">قياس غير مكتمل</div>' +
+      `<button class="item" data-go="measure"><b>${esc(cur.name || 'متابعة القياس الحالي')}</b><span>${pts.length} نقاط${pts.length >= 3 ? ' — ' + fmt(polyArea(pts)/2500,2) + ' دونم' : ''}</span></button>`;
+  }
+  if (lands.length){
+    h += '<div class="sec">آخر الأراضي المحفوظة</div>' +
+      lands.slice(0,3).map(l => `<button class="item" data-open="${l.id}"><b>${esc(l.name)}</b><span>${fmt(landArea(l)/2500,3)} دونم</span></button>`).join('');
+  }
+  $('#recent').innerHTML = h;
+}
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-go]'); if (g){ location.hash = '#' + g.dataset.go; return; }
+  const o = e.target.closest('#recent [data-open]'); if (o) openLand(+o.dataset.open);
+});
+document.querySelectorAll('.back').forEach(b => b.onclick = () => { if (history.length > 1) history.back(); else location.hash = ''; });
 
-/* ---------- محوّل الوحدات ---------- */
+/* ---------- المحوّل ---------- */
 const U = {
   m2:['متر مربع',1], dunam:['دونم عراقي',2500], hectare:['هكتار',10000],
   acre:['إيكر',4046.8564224], feddan:['فدان مصري',4200.833],
@@ -272,26 +529,56 @@ const U = {
 const sel = $('#unit');
 for (const k in U) sel.insertAdjacentHTML('beforeend', `<option value="${k}">${U[k][0]}</option>`);
 sel.value = 'dunam';
-
-function normDigits(s){
-  return s.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g, '.');
-}
 function convert(){
-  const v = parseFloat(normDigits($('#val').value));
-  const box = $('#conv-out');
+  const v = num($('#val').value), box = $('#conv-out');
   if (isNaN(v)){ box.innerHTML = '<p class="hint">أدخل رقماً.</p>'; return; }
   const m2 = v * U[sel.value][1];
-  box.innerHTML = Object.keys(U).map(k =>
-    `<div class="res ${k===sel.value?'src':''}"><span>${U[k][0]}</span><b>${fmt(m2/U[k][1], 6)}</b></div>`).join('');
+  box.innerHTML = Object.keys(U).map(k => `<div class="res ${k === sel.value ? 'src' : ''}"><span>${U[k][0]}</span><b>${fmt(m2/U[k][1], 6)}</b></div>`).join('');
 }
 $('#val').oninput = convert; sel.onchange = convert; convert();
 
-/* ---------- التبويبات ---------- */
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
-  if (b.dataset.tab === 'map') setTimeout(() => map.invalidateSize(), 50);
-});
+/* ---------- حاسبة الأشكال ---------- */
+const SH = {
+  rect:{n:'مستطيل / مربع', f:[['الطول','l'],['العرض','w']], c:v => v.l*v.w},
+  tri:{n:'مثلث (قاعدة وارتفاع)', f:[['القاعدة','b'],['الارتفاع','h']], c:v => v.b*v.h/2},
+  tri3:{n:'مثلث (ثلاثة أضلاع)', f:[['الضلع الأول','a'],['الضلع الثاني','b'],['الضلع الثالث','c']],
+        c:v => { const s = (v.a+v.b+v.c)/2, q = s*(s-v.a)*(s-v.b)*(s-v.c); return q > 0 ? Math.sqrt(q) : NaN; }},
+  trap:{n:'شبه منحرف', f:[['القاعدة الأولى','a'],['القاعدة الثانية','b'],['الارتفاع','h']], c:v => (v.a+v.b)/2*v.h},
+  circ:{n:'دائرة', f:[['نصف القطر','r']], c:v => Math.PI*v.r*v.r}
+};
+const shSel = $('#sh-sel');
+Object.keys(SH).forEach(k => shSel.insertAdjacentHTML('beforeend', `<option value="${k}">${SH[k].n}</option>`));
+function shBuild(){
+  $('#sh-f').innerHTML = SH[shSel.value].f.map(([l,k]) => `<label>${l} (متر)</label><input class="inp" data-k="${k}" inputmode="decimal" autocomplete="off">`).join('');
+  shCalc();
+}
+function shCalc(){
+  const s = SH[shSel.value], v = {}; let ok = true;
+  document.querySelectorAll('#sh-f input').forEach(i => { v[i.dataset.k] = num(i.value); if (!(v[i.dataset.k] > 0)) ok = false; });
+  const o = $('#sh-out');
+  if (!ok){ o.innerHTML = '<p class="hint">أدخل الأبعاد بالمتر.</p>'; return; }
+  const a = s.c(v);
+  if (!(a > 0)){ o.innerHTML = '<p class="hint">الأبعاد لا تكوّن شكلاً صحيحاً.</p>'; return; }
+  o.innerHTML = `<div class="big">${fmt(a/2500,3)}<small>دونم</small></div><div class="grid"><div class="cell"><b>${fmt(a,2)}</b><span>متر مربع</span></div><div class="cell"><b>${fmt(a/10000,4)}</b><span>هكتار</span></div></div>`;
+}
+shSel.onchange = shBuild; $('#sh-f').addEventListener('input', shCalc); shBuild();
+
+/* ---------- التنقل (زر الرجوع في أندرويد يعمل) ---------- */
+const routes = ['measure','distance','convert','shapes','saved'];
+function route(){
+  const r = location.hash.slice(1), id = routes.includes(r) ? r : 'home';
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 's-' + id));
+  const act = $('.screen.on'); if (act) act.scrollTop = 0;
+  if (id === 'measure' || id === 'distance') startGPS(); else stopGPS();
+  gpsUI();
+  if (id === 'home') renderHome();
+  if (id === 'measure') renderMeasure();
+  if (id === 'distance') renderDist();
+  if (id === 'saved') renderSaved();
+}
+window.addEventListener('hashchange', route);
+window.addEventListener('resize', () => { if (location.hash === '#measure') renderMeasure(); });
+route();
 </script>
 </body>
 </html>
