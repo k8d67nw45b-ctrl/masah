@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مساح</title>
+<link rel="stylesheet" href="leaflet.css">
+<style>
+:root{--bg:#F2F4F0;--ink:#1E2A22;--green:#2E5A3B;--stake:#FF6A1A;--line:#D3DACF;--card:#fff;--muted:#5E6B62}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;height:100dvh}
+header{background:var(--green);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:baseline;gap:10px}
+header h1{margin:0;font-size:24px;font-weight:800}
+header span{font-size:13px;opacity:.8}
+main{flex:1;min-height:0;position:relative}
+.tab{position:absolute;inset:0;display:none;flex-direction:column}
+.tab.on{display:flex}
+#map{flex:1;min-height:0;direction:ltr}
+#map.leaflet-container{background-color:#E6EBE2;background-image:linear-gradient(#CFD7CB 1px,transparent 1px),linear-gradient(90deg,#CFD7CB 1px,transparent 1px);background-size:40px 40px}
+.panel{background:var(--card);border-top:3px solid var(--stake);padding:12px 14px;max-height:46%;overflow:auto}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:20px;padding:8px 14px;font:inherit;font-size:14px}
+.chip:active{background:var(--line)}
+.hint{color:var(--muted);font-size:14px;line-height:1.7;margin:4px 0}
+.big{font-size:34px;font-weight:800;color:var(--stake);line-height:1.1}
+.big small{font-size:16px;color:var(--ink);font-weight:600;margin-inline-start:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.cell{background:var(--bg);border-radius:10px;padding:8px 10px}
+.cell b{display:block;font-size:17px}
+.cell span{font-size:12px;color:var(--muted)}
+details{margin-top:10px;font-size:13px}
+summary{color:var(--green);font-weight:700;padding:4px 0}
+.coords{direction:ltr;text-align:left;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;margin:6px 0}
+.pin{background:var(--stake);border:3px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+nav{display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;font:inherit;font-size:15px;padding:14px 0;color:var(--muted);border-top:3px solid transparent}
+nav button.on{color:var(--green);font-weight:800;border-top-color:var(--green)}
+.conv{padding:16px;overflow:auto}
+.conv label{font-size:14px;color:var(--muted)}
+.row{display:flex;gap:8px;margin:6px 0 16px}
+.row input,.row select{font:inherit;font-size:18px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);min-width:0}
+.row input{flex:1}
+.res{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);font-size:16px}
+.res b{direction:ltr}
+.res.src{color:var(--stake)}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:2000}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header><h1>مساح</h1><span>قياس الأراضي والمسافات</span></header>
+
+<main>
+  <section class="tab on" id="tab-map">
+    <div id="map"></div>
+    <div class="panel">
+      <div class="chips">
+        <button class="chip" id="b-undo">تراجع</button>
+        <button class="chip" id="b-clear">مسح الكل</button>
+        <button class="chip" id="b-gps">نقطة من GPS</button>
+        <button class="chip" id="b-loc">موقعي</button>
+        <button class="chip" id="b-save">حفظ المنطقة بدون نت</button>
+        <button class="chip" id="b-layer">خريطة عادية</button>
+      </div>
+      <div id="out"></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-conv">
+    <div class="conv">
+      <label for="val">القيمة</label>
+      <div class="row">
+        <input id="val" type="text" inputmode="decimal" value="1" autocomplete="off">
+        <select id="unit"></select>
+      </div>
+      <div id="conv-out"></div>
+      <p class="hint">الدونم العراقي = 2500 م².</p>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button class="on" data-tab="map">القياس بالخريطة</button>
+  <button data-tab="conv">محوّل الوحدات</button>
+</nav>
+<div id="toast"></div>
+
+<script src="leaflet.js"></script>
+<script>
+const R = 6371008.8;
+const $ = s => document.querySelector(s);
+const rad = d => d * Math.PI / 180;
+const fmt = (n, d = 2) => n.toLocaleString('en-US', {maximumFractionDigits: d});
+
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2200); }
+
+/* ---------- الحسابات ---------- */
+function dist(a, b){
+  const dLat = rad(b[0]-a[0]), dLng = rad(b[1]-a[1]);
+  const h = Math.sin(dLat/2)**2 + Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function pathLength(p, closed){
+  let s = 0;
+  for (let i = 1; i < p.length; i++) s += dist(p[i-1], p[i]);
+  if (closed && p.length > 2) s += dist(p[p.length-1], p[0]);
+  return s;
+}
+function polyArea(p){ // إسقاط محلي ثم قانون الحذاء
+  const lat0 = p.reduce((s,q)=>s+q[0],0)/p.length;
+  const xy = p.map(q => [R*rad(q[1])*Math.cos(rad(lat0)), R*rad(q[0])]);
+  let a = 0;
+  for (let i = 0; i < xy.length; i++){
+    const j = (i+1) % xy.length;
+    a += xy[i][0]*xy[j][1] - xy[j][0]*xy[i][1];
+  }
+  return Math.abs(a)/2;
+}
+
+/* ---------- الخريطة ---------- */
+/* تخزين البلاطات في الهاتف (IndexedDB) لتعمل الخريطة بدون إنترنت */
+const DB = (() => {
+  const open = new Promise(res => {
+    try {
+      const r = indexedDB.open('masah-tiles', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('t');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    } catch (e) { res(null); }
+  });
+  return {
+    async get(k){ const d = await open; if (!d) return null;
+      return new Promise(res => { const q = d.transaction('t').objectStore('t').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); },
+    async has(k){ return !!(await this.get(k)); },
+    async put(k, v){ const d = await open; if (!d) return;
+      return new Promise(res => { const tx = d.transaction('t', 'readwrite'); tx.objectStore('t').put(v, k); tx.oncomplete = () => res(); tx.onerror = () => res(); }); }
+  };
+})();
+
+const CachedLayer = L.TileLayer.extend({
+  createTile(coords, done){
+    const img = document.createElement('img');
+    img.alt = '';
+    const url = this.getTileUrl(coords);
+    const key = this.options.id + '/' + coords.z + '/' + coords.x + '/' + coords.y;
+    const show = blob => { const u = URL.createObjectURL(blob); img.onload = () => { URL.revokeObjectURL(u); done(null, img); }; img.onerror = () => done(null, img); img.src = u; };
+    DB.get(key).then(async blob => {
+      if (blob) return show(blob);
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw 0;
+        const b = await r.blob();
+        DB.put(key, b);
+        show(b);
+      } catch (e) {
+        img.onload = () => done(null, img); img.onerror = () => done(null, img);
+        if (navigator.onLine) img.src = url; else done(null, img);
+      }
+    });
+    return img;
+  }
+});
+const osm = new CachedLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {id:'osm', maxZoom:19, attribution:'© OpenStreetMap'});
+const sat = new CachedLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {id:'sat', maxZoom:19, attribution:'Esri'});
+const map = L.map('map', {zoomControl:false}).setView([33.3, 44.4], 6);
+let satOn = true; sat.addTo(map);
+
+let pts = [], markers = [], shape = null;
+const pinIcon = L.divIcon({className:'pin', iconSize:[20,20]});
+
+function addPoint(ll){
+  pts.push([ll.lat, ll.lng]);
+  const m = L.marker(ll, {draggable:true, icon:pinIcon}).addTo(map);
+  m.on('drag', () => { const i = markers.indexOf(m); const p = m.getLatLng(); pts[i] = [p.lat, p.lng]; draw(); });
+  markers.push(m);
+  draw();
+}
+function draw(){
+  if (shape) map.removeLayer(shape);
+  const st = {color:'#FF6A1A', weight:3, fillOpacity:.2};
+  if (pts.length >= 3) shape = L.polygon(pts, st).addTo(map);
+  else if (pts.length === 2) shape = L.polyline(pts, st).addTo(map);
+  else shape = null;
+  render();
+}
+function render(){
+  const n = pts.length, out = $('#out');
+  if (n === 0){ out.innerHTML = '<p class="hint">المس الخريطة لوضع نقاط حدود الأرض، أو قف عند كل زاوية واضغط «نقطة من GPS» (يعمل بدون إنترنت). يمكنك سحب أي نقطة لتعديلها.</p>'; return; }
+  let html = '';
+  if (n === 1) html = '<p class="hint">ضع نقطة ثانية لقياس المسافة، وثالثة لحساب المساحة.</p>';
+  else if (n === 2) html = `<div class="big">${fmt(pathLength(pts),1)}<small>متر</small></div><p class="hint">المسافة بين النقطتين = ${fmt(pathLength(pts)/1000,3)} كم</p>`;
+  else {
+    const a = polyArea(pts), per = pathLength(pts, true);
+    html = `<div class="big">${fmt(a/2500,3)}<small>دونم</small></div>
+    <div class="grid">
+      <div class="cell"><b>${fmt(a,1)}</b><span>متر مربع</span></div>
+      <div class="cell"><b>${fmt(a/10000,3)}</b><span>هكتار</span></div>
+      <div class="cell"><b>${fmt(per,1)}</b><span>المحيط (متر)</span></div>
+      <div class="cell"><b>${n}</b><span>عدد النقاط</span></div>
+    </div>`;
+  }
+  const list = pts.map((p,i)=>`${i+1}: ${p[0].toFixed(6)}, ${p[1].toFixed(6)}`).join('\n');
+  html += `<details><summary>الإحداثيات</summary><div class="coords">${list}</div><button class="chip" id="b-copy">نسخ الإحداثيات</button></details>`;
+  out.innerHTML = html;
+  const c = $('#b-copy');
+  if (c) c.onclick = async () => {
+    try { await navigator.clipboard.writeText(pts.map(p=>p[0].toFixed(6)+', '+p[1].toFixed(6)).join('\n')); toast('تم النسخ'); }
+    catch(e){ toast('تعذّر النسخ'); }
+  };
+}
+
+map.on('click', e => addPoint(e.latlng));
+$('#b-undo').onclick = () => { if (!pts.length) return; pts.pop(); map.removeLayer(markers.pop()); draw(); };
+$('#b-clear').onclick = () => { markers.forEach(m=>map.removeLayer(m)); markers=[]; pts=[]; draw(); };
+$('#b-layer').onclick = () => {
+  if (satOn){ map.removeLayer(sat); osm.addTo(map); $('#b-layer').textContent='قمر صناعي'; }
+  else { map.removeLayer(osm); sat.addTo(map); $('#b-layer').textContent='خريطة عادية'; }
+  satOn = !satOn;
+};
+$('#b-loc').onclick = () => { toast('جارٍ تحديد موقعك…'); map.locate({setView:true, maxZoom:18}); };
+$('#b-gps').onclick = () => {
+  if (!navigator.geolocation) return toast('الجهاز لا يدعم GPS');
+  toast('جارٍ قراءة GPS…');
+  navigator.geolocation.getCurrentPosition(p => {
+    const ll = L.latLng(p.coords.latitude, p.coords.longitude);
+    addPoint(ll);
+    map.setView(ll, Math.max(map.getZoom(), 17));
+    toast('تمت الإضافة. دقة GPS ≈ ' + Math.round(p.coords.accuracy) + ' م');
+  }, () => toast('تعذّر قراءة GPS. فعّل الموقع وأذن للتطبيق.'),
+  {enableHighAccuracy:true, timeout:30000, maximumAge:0});
+};
+
+const tx = (lng, z) => Math.floor((lng + 180) / 360 * 2 ** z);
+const ty = (lat, z) => Math.floor((1 - Math.log(Math.tan(rad(lat)) + 1 / Math.cos(rad(lat))) / Math.PI) / 2 * 2 ** z);
+$('#b-save').onclick = async () => {
+  const b = map.getBounds(), z0 = map.getZoom(), layer = satOn ? sat : osm;
+  const list = [];
+  for (let z = z0; z <= Math.min(z0 + 2, 18); z++) {
+    for (let x = tx(b.getWest(), z); x <= tx(b.getEast(), z); x++)
+      for (let y = ty(b.getNorth(), z); y <= ty(b.getSouth(), z); y++) list.push([z, x, y]);
+  }
+  if (list.length > 400) return toast('المنطقة كبيرة. قرّب الخريطة على الأرض ثم أعد المحاولة.');
+  if (!navigator.onLine) return toast('يلزم إنترنت لحفظ المنطقة.');
+  let done = 0, fail = 0;
+  const url = (z, x, y) => layer.getTileUrl({z, x, y});
+  const worker = async () => {
+    while (list.length) {
+      const [z, x, y] = list.pop(), key = layer.options.id + '/' + z + '/' + x + '/' + y;
+      try {
+        if (!(await DB.has(key))) { const r = await fetch(url(z, x, y)); if (!r.ok) throw 0; await DB.put(key, await r.blob()); }
+      } catch (e) { fail++; }
+      done++;
+    }
+  };
+  const total = list.length;
+  const tick = setInterval(() => toast('جارٍ الحفظ ' + done + ' / ' + total), 700);
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  clearInterval(tick);
+  toast(fail ? 'تم الحفظ مع ' + fail + ' بلاطة فاشلة' : 'تم حفظ المنطقة للعمل بدون إنترنت');
+};
+
+map.on('locationerror', () => toast('تعذّر تحديد الموقع. تأكد من تفعيل GPS وإذن الموقع.'));
+render();
+
+/* ---------- محوّل الوحدات ---------- */
+const U = {
+  m2:['متر مربع',1], dunam:['دونم عراقي',2500], hectare:['هكتار',10000],
+  acre:['إيكر',4046.8564224], feddan:['فدان مصري',4200.833],
+  ft2:['قدم مربع',0.09290304], km2:['كيلومتر مربع',1e6]
+};
+const sel = $('#unit');
+for (const k in U) sel.insertAdjacentHTML('beforeend', `<option value="${k}">${U[k][0]}</option>`);
+sel.value = 'dunam';
+
+function normDigits(s){
+  return s.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[٫,،]/g, '.');
+}
+function convert(){
+  const v = parseFloat(normDigits($('#val').value));
+  const box = $('#conv-out');
+  if (isNaN(v)){ box.innerHTML = '<p class="hint">أدخل رقماً.</p>'; return; }
+  const m2 = v * U[sel.value][1];
+  box.innerHTML = Object.keys(U).map(k =>
+    `<div class="res ${k===sel.value?'src':''}"><span>${U[k][0]}</span><b>${fmt(m2/U[k][1], 6)}</b></div>`).join('');
+}
+$('#val').oninput = convert; sel.onchange = convert; convert();
+
+/* ---------- التبويبات ---------- */
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
+  if (b.dataset.tab === 'map') setTimeout(() => map.invalidateSize(), 50);
+});
+</script>
+</body>
+</html>
