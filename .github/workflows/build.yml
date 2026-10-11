@@ -16,8 +16,6 @@ jobs:
           distribution: temurin
           java-version: 17
       - run: npm install
-      - name: Copy Leaflet into the app
-        run: cp -r node_modules/leaflet/dist/leaflet.js node_modules/leaflet/dist/leaflet.css node_modules/leaflet/dist/images www/
       - run: npx cap add android
       - name: Add location permissions
         run: |
